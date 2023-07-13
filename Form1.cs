@@ -448,7 +448,7 @@ namespace ModdedItemPoolEditor
                     print(poolView.SelectedItems[i].ToString() + " || " + i);
                     if (read1 && !readField(read1, 1, i, weightChanger)) read1 = false;
                     if (read2 && !readField(read2, 2, i, decreaseChanger)) read2 = false;
-                    if (read3!readField(read3, 3, i, removeChanger)) read3 = false;
+                    if (read3 && !readField(read3, 3, i, removeChanger)) read3 = false;
                 }
             }
             else if (poolView.SelectedItems.Count == 1) //Only one item selected
