@@ -8,6 +8,8 @@ namespace ModdedItemPoolEditor
         private string gfxroot = "";
         private List<ListViewItem> MasterItemsList = new List<ListViewItem>();
         private List<KeyValuePair<string, List<ListViewItem>>> Pools = new List<KeyValuePair<string, List<ListViewItem>>>();
+        private int bookmarkSelectionIndex = -1;
+
 
         public Form1()
         {
@@ -51,7 +53,7 @@ namespace ModdedItemPoolEditor
         //TODO
         //The lazy way: just set a flag every time the user either loads an xml, or puts something into a pool.
         //The good way: compare current itempools to loaded itempools.xml. If no xml is loaded, check if map is empty.
-        public Boolean unsavedChanges()
+        public bool unsavedChanges()
         {
             return false;
         }
@@ -67,6 +69,7 @@ namespace ModdedItemPoolEditor
                 item.SubItems.Add("1");
                 item.SubItems.Add("0.1");
                 item.ImageKey = i.ImageKey;
+                if (item.ForeColor != null) { item.ForeColor = i.ForeColor; }
                 Pools[itemPoolSelection.SelectedIndex].Value.Add(item);
                 RenderList(Pools[itemPoolSelection.SelectedIndex].Value, poolView);
             }
@@ -144,7 +147,7 @@ namespace ModdedItemPoolEditor
             return null;
         }
 
-        public void printItemPools()
+        /*public void printItemPools()
         {
             foreach (var pool in Pools)
             {
@@ -154,6 +157,22 @@ namespace ModdedItemPoolEditor
                     print("\t" + item.ToString());
                 }
             }
+        }*/
+
+        public String poolToString()
+        {
+            string output = "";
+
+            foreach (var pool in Pools)
+            {
+                output += pool.Key;
+                foreach (var item in pool.Value)
+                {
+                    output += "\t" + item.ToString();
+                }
+            }
+
+            return output;
         }
 
         //-----------------------------------------------------------------
@@ -201,14 +220,19 @@ namespace ModdedItemPoolEditor
                             || itemNode.Name.ToLower().Equals("active")
                             || itemNode.Name.ToLower().Equals("familiar"))
                         {
+                            bool hiddenItem = false;
                             //handle errors
                             if (itemNode.Attributes["hidden"] != null &&
-                                itemNode.Attributes["hidden"].Value.Equals("true")) { continue; }
+                                itemNode.Attributes["hidden"].Value.Equals("true"))
+                            {
+                                hiddenItem = true;
+                            }
                             if (itemNode.Attributes["name"] == null) { continue; }
 
                             ListViewItem item = new ListViewItem(itemNode.Attributes["name"].Value);
                             item.Name = itemNode.Attributes["name"].Value;
                             item.ImageKey = itemNode.Attributes["gfx"].Value;
+                            if (hiddenItem) { item.ForeColor = Color.Red; }
                             //item.ToolTipText = itemNode.Attributes["name"].Value;
 
                             MasterItemsList.Add(item);
@@ -231,6 +255,20 @@ namespace ModdedItemPoolEditor
 
                     //TODO: If a mod has a .txt file called 'custompools.txt' in the main directory, read the file and add its pools to the pool list.
 
+                    if (Properties.Settings.Default.AutoLoadPools)
+                    {
+                        string poolFile = fileName.Replace("items.xml", "itempools.xml");
+                        try
+                        {
+                            bookmarkSelectionIndex = itemPoolSelection.SelectedIndex;
+                            loadItemPoolFromXml(poolFile);
+                        }
+                        catch
+                        {
+                            MessageBox.Show($"Could not autoload pools from {poolFile}!\nYou will need to manually load your itempools.xml.\nThis may occur when loading xmls from non-standard directories, or when using non-standard xml file names.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+
                 }
                 catch (Exception ex)
                 {
@@ -244,7 +282,7 @@ namespace ModdedItemPoolEditor
         //File - Click Load Itempools.xml
         private void ClickLoadItemPools(object sender, EventArgs e)
         {
-            int bookmarkSelectionIndex = itemPoolSelection.SelectedIndex;
+            bookmarkSelectionIndex = itemPoolSelection.SelectedIndex;
             if (openPoolsXMLDialogue.ShowDialog() == DialogResult.OK)
             {
                 if (MasterItemsList.Count == 0)
@@ -255,65 +293,10 @@ namespace ModdedItemPoolEditor
                 try
                 {
                     RegisterPools();
-
-                    XmlDocument poolsXML = new XmlDocument();
-                    poolsXML.Load(openPoolsXMLDialogue.FileName);
                     //TODO: Move everything from here to a seperate method, allowing itempool loading to be done without a dialogue popup, provided we know where the itempools.xml is located.
                     //This means we can automatically load pools when the user opens items.xml.
-                    XmlNode rootNode = poolsXML.DocumentElement;
-                    if (rootNode == null)
-                    {
-                        MessageBox.Show("No root node found in itempoolss.xml.\nEnsure the selected xml file begins with '<ItemPools>'", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                    //print(rootNode.ChildNodes.Count);
-
-                    //For each pool
-                    foreach (XmlNode poolNode in rootNode.ChildNodes)
-                    {
-
-                        //XmlNode poolNode = rootNode.SelectNodes(pool.Key)[0];
-                        if (poolNode == null) { continue; }
-                        if (poolNode.NodeType.Equals(XmlNodeType.Comment))
-                        { continue; }
-
-                        //We do it this way so that we can load pools even if theyre out of order
-                        int currentPool = getPoolIDByName(poolNode.Attributes["Name"].Value);
-                        //itemPoolSelection.Items.Add(currentPool);
-
-                        int count = 0;
-                        //For each item in the pool
-                        foreach (XmlNode itemNode in poolNode.ChildNodes)
-                        {
-                            if (itemNode.NodeType.Equals(XmlNodeType.Comment))
-                            { continue; }
-
-                            //TODO: make this case-insensitive.
-                            ListViewItem item = new ListViewItem(itemNode.Attributes["Name"].Value);
-                            item.Name = itemNode.Attributes["Name"].Value;
-                            item.SubItems.Add(itemNode.Attributes["Weight"].Value);
-                            item.SubItems.Add(itemNode.Attributes["DecreaseBy"].Value);
-                            item.SubItems.Add(itemNode.Attributes["RemoveOn"].Value);
-
-                            ListViewItem masterCopy = getItemByName(item.Name);
-                            if (masterCopy == null)
-                            {
-                                print($"Found {item.Name} in pool, but item does not exist in items.xml, or is hidden!");
-                                continue;
-                            }
-                            item.ImageKey = getItemByName(item.Name).ImageKey;
-
-                            addItemToPool(item, currentPool);
-                            count++;
-                        }
-                        //print(poolNode.ChildNodes.Count);
-                    }
-
-                    MessageBox.Show("Successfully loaded itempools!", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    //printItemPools();
-                    //MessageBox.Show($"{bookmarkSelectionIndex}");
-                    itemPoolSelection.SelectedIndex = bookmarkSelectionIndex;
-                    RenderList(Pools[itemPoolSelection.SelectedIndex].Value, poolView);
+                    loadItemPoolFromXml(openPoolsXMLDialogue.FileName);
+                    print(poolToString());
                 }
                 catch (Exception ex)
                 {
@@ -322,6 +305,69 @@ namespace ModdedItemPoolEditor
                     return;
                 }
             }
+        }
+
+        //TODO: Make bookmarkSelectionIndex not needed to be passed in as a parameter.
+        private void loadItemPoolFromXml(string fileName)
+        {
+
+            XmlDocument poolsXML = new XmlDocument();
+            poolsXML.Load(fileName);
+            XmlNode rootNode = poolsXML.DocumentElement;
+            if (rootNode == null)
+            {
+                MessageBox.Show("No root node found in itempoolss.xml.\nEnsure the selected xml file begins with '<ItemPools>'", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            //print(rootNode.ChildNodes.Count);
+
+            //For each pool
+            foreach (XmlNode poolNode in rootNode.ChildNodes)
+            {
+
+                //XmlNode poolNode = rootNode.SelectNodes(pool.Key)[0];
+                if (poolNode == null) { continue; }
+                if (poolNode.NodeType.Equals(XmlNodeType.Comment))
+                { continue; }
+
+                //We do it this way so that we can load pools even if theyre out of order
+                int currentPool = getPoolIDByName(poolNode.Attributes["Name"].Value);
+                //itemPoolSelection.Items.Add(currentPool);
+
+                int count = 0;
+                //For each item in the pool
+                foreach (XmlNode itemNode in poolNode.ChildNodes)
+                {
+                    if (itemNode.NodeType.Equals(XmlNodeType.Comment))
+                    { continue; }
+
+                    //TODO: make this case-insensitive.
+                    ListViewItem item = new ListViewItem(itemNode.Attributes["Name"].Value);
+                    item.Name = itemNode.Attributes["Name"].Value;
+                    item.SubItems.Add(itemNode.Attributes["Weight"].Value);
+                    item.SubItems.Add(itemNode.Attributes["DecreaseBy"].Value);
+                    item.SubItems.Add(itemNode.Attributes["RemoveOn"].Value);
+
+                    ListViewItem masterCopy = getItemByName(item.Name);
+                    if (masterCopy == null)
+                    {
+                        print($"Found {item.Name} in pool, but item does not exist in items.xml, or is hidden!");
+                        continue;
+                    }
+                    item.ImageKey = getItemByName(item.Name).ImageKey;
+                    if (getItemByName(item.Name).ForeColor != null) { item.ForeColor = getItemByName(item.Name).ForeColor; }
+
+                    addItemToPool(item, currentPool);
+                    count++;
+                }
+                //print(poolNode.ChildNodes.Count);
+            }
+
+            MessageBox.Show("Successfully loaded itempools!", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            //printItemPools();
+            //MessageBox.Show($"{bookmarkSelectionIndex}");
+            itemPoolSelection.SelectedIndex = bookmarkSelectionIndex;
+            RenderList(Pools[itemPoolSelection.SelectedIndex].Value, poolView);
         }
 
         //File - Click Save Itempools.xml
@@ -360,16 +406,59 @@ namespace ModdedItemPoolEditor
             }
         }
 
+        //File - New Itempools
+        private void ClickNewItemPools(object sender, EventArgs e)
+        {
+
+        }
+
         //Options - Show Item Names in Master View
         private void ToggleShowItemNamesMaster(object sender, EventArgs e)
         {
-            
+            Properties.Settings.Default.ListItemNames = showNamesInItemViewToggle.Checked;
+            Properties.Settings.Default.Save();
         }
 
         //Options - Show Item Names in Pool View
         private void ToggleShowItemNamesPool(object sender, EventArgs e)
         {
+            Properties.Settings.Default.PoolItemNames = showNamesInPoolViewToggle.Checked;
+            Properties.Settings.Default.Save();
+        }
 
+        //Options - Automatically load Itempools.xml from same dir. as Items.xml
+        private void ClickAutoLoadPoolsToggle(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.AutoLoadPools = autoLoadPoolsToggle.Checked;
+            Properties.Settings.Default.Save();
+        }
+
+        //Options - Change Item Icon size/setting
+        private void UpdateItemIconSize(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.IconSize = iconSizeToolStripMenuItem.SelectedIndex;
+            Properties.Settings.Default.Save();
+        }
+
+        //Options - Load hidden items when loading items.xml
+        private void ToggleAutoItemLoads(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.ShowHiddenItems = showNamesInItemViewToggle.Checked;
+            Properties.Settings.Default.Save();
+        }
+
+        //Options - Remove items from the item list if theyre in pools
+        private void ToggleShowItemListDuplicates(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.ShowDuplicates = showNamesInItemViewToggle.Checked;
+            Properties.Settings.Default.Save();
+        }
+
+        //Options - Allow duplicate items to be added to pools
+        private void ToggleAllowDuplicatesInPools(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.AllowDuplicates = showNamesInItemViewToggle.Checked;
+            Properties.Settings.Default.Save();
         }
 
         //Help - How To
@@ -439,9 +528,9 @@ namespace ModdedItemPoolEditor
             updateSelectCountDisplay();
             if (poolView.SelectedItems.Count > 1)
             {
-                Boolean read1 = true;
-                Boolean read2 = true;
-                Boolean read3 = true;
+                bool read1 = true;
+                bool read2 = true;
+                bool read3 = true;
 
                 for (int i = 0; i < poolView.SelectedItems.Count; i++)
                 {
@@ -465,7 +554,7 @@ namespace ModdedItemPoolEditor
             }
         }
 
-        private Boolean readField(Boolean read, int field, int index, NumericUpDown box)
+        private bool readField(bool read, int field, int index, NumericUpDown box)
         {
             //print(poolView.SelectedItems[index].ToString());
             //If item's value doesnt match the first element in the list.
@@ -553,31 +642,37 @@ namespace ModdedItemPoolEditor
             }
         }
 
-        private void ClickAutoLoadPoolsToggle(object sender, EventArgs e)
-        {
-
-        }
-
         private void greedAutoFillButton(object sender, EventArgs e)
         {
             if (itemPoolSelection.SelectedIndex >= 0)
             {
                 if (MessageBox.Show("Are you sure?\nClicking 'yes' will overwrite all greed-specific item pools with their non-greed counterparts.", "Information", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
-                    List<int> greedPools = new List<int>();
-                    List<int> regPools = new List<int>();
+                    List<string> greedPools = new List<string>();
+                    List<string> regPools = new List<string>();
+                    //First, save all the pool names.
                     foreach (KeyValuePair<string, List<ListViewItem>> kvp in Pools)
                     {
                         if (kvp.Key.StartsWith("greed"))
                         {
                             string greedName = kvp.Key;
-                            greedPools.Add(getPoolIDByName(greedName));
-                            regPools.Add(getPoolIDByName(greedName.Replace("greed", "").ToLower()));
+                            greedPools.Add(greedName);
+                            regPools.Add(greedName.Replace("greed", "").ToLower());
                         }
                     }
-                    for (int i = 0; i < greedPools.Count - 1; i++)
+                    //For each saved name
+                    for (int i = 0; i < regPools.Count; i++)
                     {
-                        Pools[greedPools[i]] = Pools[regPools[i]];
+                        List<ListViewItem> clonedPool = new List<ListViewItem>();
+                        //Copy the regular list into a new list
+                        foreach(ListViewItem item in Pools[getPoolIDByName(regPools[i])].Value)
+                        {
+                            clonedPool.Add(item);
+                        }
+
+                        //Update the Pools with the new pool.
+                        Pools[getPoolIDByName(greedPools[i])] 
+                            = new KeyValuePair<String, List<ListViewItem>>(greedPools[i], clonedPool);
                     }
                     RenderList(Pools[itemPoolSelection.SelectedIndex].Value, poolView);
                 }

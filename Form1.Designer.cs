@@ -35,11 +35,15 @@
             importItemsxmlToolStripMenuItem = new ToolStripMenuItem();
             loadItempoolsxmlToolStripMenuItem = new ToolStripMenuItem();
             saveItempoolsxmlToolStripMenuItem = new ToolStripMenuItem();
+            newItempoolsxmlToolStripMenuItem = new ToolStripMenuItem();
             helpToolStripMenuItem = new ToolStripMenuItem();
             showNamesInItemViewToggle = new ToolStripMenuItem();
             showNamesInPoolViewToggle = new ToolStripMenuItem();
             autoLoadPoolsToggle = new ToolStripMenuItem();
             iconSizeToolStripMenuItem = new ToolStripComboBox();
+            showHiddenItemsToolStripMenuItem = new ToolStripMenuItem();
+            showItemsAlreadyInPoolToolStripMenuItem = new ToolStripMenuItem();
+            allowDuplicatesToolStripMenuItem = new ToolStripMenuItem();
             helpToolStripMenuItem1 = new ToolStripMenuItem();
             howToUseToolStripMenuItem = new ToolStripMenuItem();
             aboutToolStripMenuItem = new ToolStripMenuItem();
@@ -68,6 +72,7 @@
             decreaseChanger = new NumericUpDown();
             removeChanger = new NumericUpDown();
             searchCounter = new Label();
+            removeDuplicates = new Button();
             menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)weightChanger).BeginInit();
             ((System.ComponentModel.ISupportInitialize)decreaseChanger).BeginInit();
@@ -86,7 +91,7 @@
             // 
             // fileToolStripMenuItem
             // 
-            fileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { importItemsxmlToolStripMenuItem, loadItempoolsxmlToolStripMenuItem, saveItempoolsxmlToolStripMenuItem });
+            fileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { importItemsxmlToolStripMenuItem, loadItempoolsxmlToolStripMenuItem, saveItempoolsxmlToolStripMenuItem, newItempoolsxmlToolStripMenuItem });
             fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             fileToolStripMenuItem.Size = new Size(37, 20);
             fileToolStripMenuItem.Text = "File";
@@ -112,9 +117,16 @@
             saveItempoolsxmlToolStripMenuItem.Text = "Save itempools.xml";
             saveItempoolsxmlToolStripMenuItem.Click += ClickSaveItemPools;
             // 
+            // newItempoolsxmlToolStripMenuItem
+            // 
+            newItempoolsxmlToolStripMenuItem.Name = "newItempoolsxmlToolStripMenuItem";
+            newItempoolsxmlToolStripMenuItem.Size = new Size(179, 22);
+            newItempoolsxmlToolStripMenuItem.Text = "New itempools.xml";
+            newItempoolsxmlToolStripMenuItem.Click += ClickNewItemPools;
+            // 
             // helpToolStripMenuItem
             // 
-            helpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { showNamesInItemViewToggle, showNamesInPoolViewToggle, autoLoadPoolsToggle, iconSizeToolStripMenuItem });
+            helpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { showNamesInItemViewToggle, showNamesInPoolViewToggle, autoLoadPoolsToggle, iconSizeToolStripMenuItem, showHiddenItemsToolStripMenuItem, showItemsAlreadyInPoolToolStripMenuItem, allowDuplicatesToolStripMenuItem });
             helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             helpToolStripMenuItem.Size = new Size(61, 20);
             helpToolStripMenuItem.Text = "Options";
@@ -151,9 +163,32 @@
             // 
             // iconSizeToolStripMenuItem
             // 
+            iconSizeToolStripMenuItem.Items.AddRange(new object[] { "Small", "Large", "List", "Tiles" });
             iconSizeToolStripMenuItem.Name = "iconSizeToolStripMenuItem";
             iconSizeToolStripMenuItem.Size = new Size(213, 23);
-            iconSizeToolStripMenuItem.Text = "Icon size";
+            iconSizeToolStripMenuItem.Text = "Icon Display Style";
+            iconSizeToolStripMenuItem.Click += UpdateItemIconSize;
+            // 
+            // showHiddenItemsToolStripMenuItem
+            // 
+            showHiddenItemsToolStripMenuItem.Name = "showHiddenItemsToolStripMenuItem";
+            showHiddenItemsToolStripMenuItem.Size = new Size(273, 22);
+            showHiddenItemsToolStripMenuItem.Text = "Show hidden items";
+            showHiddenItemsToolStripMenuItem.Click += ToggleAutoItemLoads;
+            // 
+            // showItemsAlreadyInPoolToolStripMenuItem
+            // 
+            showItemsAlreadyInPoolToolStripMenuItem.Name = "showItemsAlreadyInPoolToolStripMenuItem";
+            showItemsAlreadyInPoolToolStripMenuItem.Size = new Size(273, 22);
+            showItemsAlreadyInPoolToolStripMenuItem.Text = "Show items already in pool";
+            showItemsAlreadyInPoolToolStripMenuItem.Click += ToggleShowItemListDuplicates;
+            // 
+            // allowDuplicatesToolStripMenuItem
+            // 
+            allowDuplicatesToolStripMenuItem.Name = "allowDuplicatesToolStripMenuItem";
+            allowDuplicatesToolStripMenuItem.Size = new Size(273, 22);
+            allowDuplicatesToolStripMenuItem.Text = "Allow duplicates";
+            allowDuplicatesToolStripMenuItem.Click += ToggleAllowDuplicatesInPools;
             // 
             // helpToolStripMenuItem1
             // 
@@ -186,12 +221,13 @@
             itemView.MultiSelect = false;
             itemView.Name = "itemView";
             itemView.ShowItemToolTips = true;
-            itemView.Size = new Size(450, 473);
+            itemView.Size = new Size(450, 464);
             itemView.SmallImageList = itemSpriteList;
             itemView.Sorting = SortOrder.Ascending;
             itemView.TabIndex = 1;
+            itemView.TileSize = new Size(200, 36);
             itemView.UseCompatibleStateImageBehavior = false;
-            itemView.View = View.SmallIcon;
+            itemView.View = View.List;
             itemView.SelectedIndexChanged += SelectedItemUpdate;
             // 
             // itemSpriteList
@@ -225,7 +261,7 @@
             poolView.Sorting = SortOrder.Ascending;
             poolView.TabIndex = 2;
             poolView.UseCompatibleStateImageBehavior = false;
-            poolView.View = View.SmallIcon;
+            poolView.View = View.List;
             poolView.SelectedIndexChanged += SelectedItemsUpdate;
             // 
             // label1
@@ -300,9 +336,9 @@
             // 
             // addRandomButton
             // 
-            addRandomButton.Location = new Point(522, 526);
+            addRandomButton.Location = new Point(242, 526);
             addRandomButton.Name = "addRandomButton";
-            addRandomButton.Size = new Size(130, 23);
+            addRandomButton.Size = new Size(220, 23);
             addRandomButton.TabIndex = 15;
             addRandomButton.Text = "Add Random Item";
             addRandomButton.UseVisualStyleBackColor = true;
@@ -311,21 +347,21 @@
             // removeSelectedButton
             // 
             removeSelectedButton.BackColor = Color.FromArgb(255, 128, 128);
-            removeSelectedButton.Location = new Point(842, 526);
+            removeSelectedButton.Location = new Point(852, 524);
             removeSelectedButton.Name = "removeSelectedButton";
-            removeSelectedButton.Size = new Size(130, 23);
+            removeSelectedButton.Size = new Size(120, 23);
             removeSelectedButton.TabIndex = 16;
-            removeSelectedButton.Text = "Remove All";
+            removeSelectedButton.Text = "Remove All Items";
             removeSelectedButton.UseVisualStyleBackColor = false;
             removeSelectedButton.Click += ClickRemoveAll;
             // 
             // removeAllButton
             // 
-            removeAllButton.Location = new Point(682, 526);
+            removeAllButton.Location = new Point(522, 524);
             removeAllButton.Name = "removeAllButton";
-            removeAllButton.Size = new Size(130, 23);
+            removeAllButton.Size = new Size(150, 23);
             removeAllButton.TabIndex = 17;
-            removeAllButton.Text = "Remove Selected";
+            removeAllButton.Text = "Remove Selected Items";
             removeAllButton.UseVisualStyleBackColor = true;
             removeAllButton.Click += ClickRemoveSelected;
             // 
@@ -401,11 +437,20 @@
             // 
             searchCounter.AutoSize = true;
             searchCounter.Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
-            searchCounter.Location = new Point(12, 533);
+            searchCounter.Location = new Point(12, 528);
             searchCounter.Name = "searchCounter";
             searchCounter.Size = new Size(138, 19);
             searchCounter.TabIndex = 24;
             searchCounter.Text = "Showing 0 of 0 items";
+            // 
+            // removeDuplicates
+            // 
+            removeDuplicates.Location = new Point(678, 524);
+            removeDuplicates.Name = "removeDuplicates";
+            removeDuplicates.Size = new Size(150, 23);
+            removeDuplicates.TabIndex = 25;
+            removeDuplicates.Text = "Remove Duplicate Items";
+            removeDuplicates.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -413,6 +458,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.ControlLight;
             ClientSize = new Size(984, 561);
+            Controls.Add(removeDuplicates);
             Controls.Add(searchCounter);
             Controls.Add(removeChanger);
             Controls.Add(decreaseChanger);
@@ -484,11 +530,15 @@
         private ColumnHeader columnHeader1;
         private ColumnHeader columnHeader2;
         private ColumnHeader columnHeader3;
-        private ToolStripMenuItem toolStripMenuItem1;
         private Button greedPoolAutoFillButton;
         private NumericUpDown weightChanger;
         private NumericUpDown decreaseChanger;
         private NumericUpDown removeChanger;
         private Label searchCounter;
+        private ToolStripMenuItem showHiddenItemsToolStripMenuItem;
+        private ToolStripMenuItem showItemsAlreadyInPoolToolStripMenuItem;
+        private ToolStripMenuItem allowDuplicatesToolStripMenuItem;
+        private Button removeDuplicates;
+        private ToolStripMenuItem newItempoolsxmlToolStripMenuItem;
     }
 }
