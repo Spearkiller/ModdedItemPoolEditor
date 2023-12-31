@@ -487,8 +487,7 @@ namespace ModdedItemPoolEditor
                 "\nClick items in the left panel to add them to the selected itempool." +
                 "\n" +
                 "\nNOTE: This tool can ONLY read items.xml files that are properly situated in their mod's files (I.E. in the 'content' folder that the game will read from.)" +
-                "\nAdditionally, any items that are marked as 'hidden' will not be added to the items pane. " +
-                "\nAny improperly formatted entries in either items.xml or itempools.xml will be skipped over, so make sure xmls are properly formatted and up-to-date with a mod's contnet. If they are not, consider fixing them, or contacting the mod author.", "How to use", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                "\nAny improperly formatted entries in either items.xml or itempools.xml will be skipped over, so make sure xmls are properly formatted and up-to-date with a mod's content. If they are not, consider fixing them, or contacting the mod author.", "How to use", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         //Help - About
