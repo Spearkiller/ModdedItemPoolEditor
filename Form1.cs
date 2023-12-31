@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Xml;
 using static System.Windows.Forms.ListView;
 
@@ -195,7 +196,7 @@ namespace ModdedItemPoolEditor
                     XmlNode rootNode = itemsXml.DocumentElement;
                     if (rootNode == null)
                     {
-                        MessageBox.Show("No root node found in items.xml.\nEnsure the selected xml file begins with '<items'", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("No root node found in items.xml.\nEnsure the selected xml file begins with '<items>'", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
 
@@ -232,6 +233,7 @@ namespace ModdedItemPoolEditor
                             ListViewItem item = new ListViewItem(itemNode.Attributes["name"].Value);
                             item.Name = itemNode.Attributes["name"].Value;
                             item.ImageKey = itemNode.Attributes["gfx"].Value;
+
                             if (hiddenItem) { item.ForeColor = Color.Red; }
                             //item.ToolTipText = itemNode.Attributes["name"].Value;
 
@@ -246,10 +248,26 @@ namespace ModdedItemPoolEditor
                     itemSpriteList.Images.Clear();
                     for (int i = 0; i < MasterItemsList.Count - 1; i++)
                     {
-                        string spriteName = MasterItemsList[i].ImageKey;
-                        string filepath = gfxroot + spriteName;
+                        string spriteName = null;
+                        string filepath = null;
+
+                        if (MasterItemsList[i].ImageKey != null) {
+                            spriteName = MasterItemsList[i].ImageKey;
+                            filepath = gfxroot + spriteName;
+                        }
                         //print(filepath);
-                        itemSpriteList.Images.Add(spriteName, Image.FromFile(filepath));
+                        Image icon = null;
+                        if (File.Exists(filepath))
+                        {
+                            //print("Found image: " + filepath);
+                            icon = Image.FromFile(filepath);
+                        }
+                        else
+                        {
+                            //print("Could not find image for " + MasterItemsList[i].Name);
+                            icon = Properties.Resources.questionmark;
+                        }
+                        itemSpriteList.Images.Add(spriteName, icon);
                     }
                     RenderList(MasterItemsList, itemView);
 
